@@ -1,0 +1,40 @@
+# GraphQL schema for TLS Certificate Proxy
+#
+# Authentication and user management
+
+type User {
+  id: ID!
+  description: String!
+}
+
+type Query {
+  health: Health!
+  version: Version!
+  me: User
+}
+
+type Health {
+  status: String!
+  timestamp: String!
+}
+
+type Version {
+  version: String!
+  buildTime: String!
+  gitCommit: String!
+}
+
+type LoginResponse {
+  success: Boolean!
+  message: String!
+  user: User
+}
+
+input LoginInput {
+  apiKey: String!
+}
+
+type Mutation {
+  login(input: LoginInput!): LoginResponse!
+  logout: Boolean!
+}

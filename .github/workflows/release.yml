@@ -1,0 +1,219 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Validate version format
+      id: version
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+          echo "Error: Version must be in format v1.2.3 or v1.2.3-beta.1"
+          exit 1
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Check if tag exists
+      run: |
+        if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          echo "Error: Tag ${{ steps.version.outputs.version }} already exists"
+          exit 1
+        fi
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get last tag
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -z "$LAST_TAG" ]; then
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "Initial release" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          ## What's Changed
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Downloads
+          
+          Download the binary for your platform below.
+          
+          ## Installation
+          
+          ### Linux / macOS
+          ```bash
+          # Download and extract
+          tar -xzf go-cert-provider-*.tar.gz
+          
+          # Make executable
+          chmod +x go-cert-provider
+          
+          # Move to PATH
+          sudo mv go-cert-provider /usr/local/bin/
+          ```
+          
+          ### Windows
+          ```powershell
+          # Extract the zip file and add to PATH
+          ```
+        draft: false
+        prerelease: ${{ github.event.inputs.prerelease }}
+
+  build-and-upload:
+    name: Build and Upload Assets
+    needs: create-release
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Get build info
+      id: info
+      run: |
+        echo "BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+        echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+        
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        BINARY_NAME=go-cert-provider
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          BINARY_NAME="${BINARY_NAME}.exe"
+        fi
+        
+        # Build with static linking and version info
+        LDFLAGS="-s -w"
+        LDFLAGS="$LDFLAGS -X 'github.com/dh-kam/go-cert-provider/config.Version=${{ needs.create-release.outputs.version }}'"
+        LDFLAGS="$LDFLAGS -X 'github.com/dh-kam/go-cert-provider/config.BuildTime=${{ steps.info.outputs.BUILD_TIME }}'"
+        LDFLAGS="$LDFLAGS -X 'github.com/dh-kam/go-cert-provider/config.GitCommit=${{ steps.info.outputs.GIT_COMMIT }}'"
+        
+        if [ "${{ matrix.goos }}" = "linux" ]; then
+          LDFLAGS="$LDFLAGS -extldflags '-static'"
+        fi
+        
+        go build -ldflags="$LDFLAGS" -o "${BINARY_NAME}" .
+        
+    - name: Create archive
+      run: |
+        BINARY_NAME=go-cert-provider
+        ARCHIVE_NAME="go-cert-provider-${{ needs.create-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+        
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          BINARY_NAME="${BINARY_NAME}.exe"
+          ARCHIVE_NAME="${ARCHIVE_NAME}.zip"
+          zip "${ARCHIVE_NAME}" "${BINARY_NAME}" README.md
+        else
+          ARCHIVE_NAME="${ARCHIVE_NAME}.tar.gz"
+          tar -czf "${ARCHIVE_NAME}" "${BINARY_NAME}" README.md
+        fi
+        
+        echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+        
+    - name: Generate checksum
+      run: |
+        if command -v sha256sum > /dev/null; then
+          sha256sum "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+        else
+          shasum -a 256 "${ARCHIVE_NAME}" > "${ARCHIVE_NAME}.sha256"
+        fi
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ env.ARCHIVE_NAME }}
+        asset_name: ${{ env.ARCHIVE_NAME }}
+        asset_content_type: application/octet-stream
+        
+    - name: Upload Checksum
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ env.ARCHIVE_NAME }}.sha256
+        asset_name: ${{ env.ARCHIVE_NAME }}.sha256
+        asset_content_type: text/plain
+
+  notify:
+    name: Notify Completion
+    needs: [create-release, build-and-upload]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Release Summary
+      run: |
+        echo "🎉 Release ${{ needs.create-release.outputs.version }} created successfully!"
+        echo "✅ All platform binaries built and uploaded"
+        echo "📦 Assets available at: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.create-release.outputs.version }}"

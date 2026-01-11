@@ -1,0 +1,115 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Staticcheck is a go vet on steroids
+    - unused        # Check for unused constants, variables, functions and types
+    - gofmt         # Check whether code was gofmt-ed
+    - goimports     # Check import statements are formatted
+    - misspell      # Finds commonly misspelled English words
+    - revive        # Fast, configurable, extensible, flexible, and beautiful linter
+    - gosec         # Inspects source code for security problems
+    - unconvert     # Remove unnecessary type conversions
+    - exportloopref # Check for pointers to enclosing loop variables
+    - nolintlint    # Reports ill-formed or insufficient nolint directives
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    
+  govet:
+    check-shadowing: true
+    enable-all: true
+    
+  gofmt:
+    simplify: true
+    
+  revive:
+    rules:
+      - name: var-naming
+        disabled: false
+      - name: context-as-argument
+        disabled: false
+      - name: error-return
+        disabled: false
+      - name: error-strings
+        disabled: false
+      - name: error-naming
+        disabled: false
+      - name: exported
+        disabled: false
+      - name: if-return
+        disabled: false
+      - name: increment-decrement
+        disabled: false
+      - name: var-declaration
+        disabled: false
+      - name: package-comments
+        disabled: true  # Allow packages without comments
+      - name: range
+        disabled: false
+      - name: receiver-naming
+        disabled: false
+      - name: time-naming
+        disabled: false
+      - name: unexported-return
+        disabled: false
+      - name: indent-error-flow
+        disabled: false
+      - name: errorf
+        disabled: false
+      - name: empty-block
+        disabled: false
+      - name: superfluous-else
+        disabled: false
+      - name: unused-parameter
+        disabled: true  # Too strict for CLI handlers
+      - name: unreachable-code
+        disabled: false
+      - name: redefines-builtin-id
+        disabled: false
+        
+  gosec:
+    excludes:
+      - G104  # Allow unchecked errors in some cases
+      - G304  # Allow file path from variable (needed for CLI)
+      
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - revive
+        
+    # Exclude generated files
+    - path: generated/
+      linters:
+        - all
+        
+    # Allow long lines in generated files
+    - path: generated/
+      text: "line is"
+      
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true

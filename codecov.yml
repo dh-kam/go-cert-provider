@@ -1,0 +1,27 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+ignore:
+  - "graph/generated/**"
+  - "graph/model/**"
+  - "**/*_test.go"
+  - "**/testdata/**"
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+github_checks:
+  annotations: true
