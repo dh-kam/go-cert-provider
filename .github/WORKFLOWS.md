@@ -10,7 +10,7 @@
 
 **작업:**
 - **Test**: 모든 테스트 실행 및 커버리지 리포트 생성
-  - Go 1.23 사용
+  - Go 1.25 사용
   - Race detector 활성화
   - Coverage 리포트를 Codecov에 업로드
   - Coverage HTML 리포트를 artifact로 저장 (30일 보관)
