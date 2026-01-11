@@ -40,7 +40,7 @@ Perfect for teams or organizations where:
 
 ### Prerequisites
 
-- Go 1.25 or higher
+- Go 1.24 or higher
 - Porkbun account with API access
 - Valid domain(s) registered with Porkbun
 
