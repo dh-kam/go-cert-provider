@@ -62,11 +62,11 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 	domainsStr := b.getDomains()
 
 	if apiKey == "" {
-		return nil, fmt.Errorf("Porkbun API key not configured (set PORKBUN_API_KEY env var or --porkbun-api-key flag)")
+		return nil, fmt.Errorf("porkbun API key not configured (set PORKBUN_API_KEY env var or --porkbun-api-key flag)")
 	}
 
 	if secretKey == "" {
-		return nil, fmt.Errorf("Porkbun secret key not configured (set PORKBUN_SECRET_KEY env var or --porkbun-secret-key flag)")
+		return nil, fmt.Errorf("porkbun secret key not configured (set PORKBUN_SECRET_KEY env var or --porkbun-secret-key flag)")
 	}
 
 	var domains []string
@@ -138,7 +138,7 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 
 	// Validate configuration
 	if err := provider.ValidateConfiguration(); err != nil {
-		return nil, fmt.Errorf("Porkbun provider validation failed: %w", err)
+		return nil, fmt.Errorf("porkbun provider validation failed: %w", err)
 	}
 
 	return provider, nil

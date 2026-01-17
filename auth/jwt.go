@@ -41,7 +41,7 @@ func parseJWTWithoutVerification(tokenString string) (*JWTClaims, error) {
 	}
 
 	if claims.ExpiresAt != nil && time.Now().After(claims.ExpiresAt.Time) {
-		return nil, fmt.Errorf("JWT token is expired")
+		return nil, fmt.Errorf("jwt token is expired")
 	}
 
 	if claims.UserID == "" {

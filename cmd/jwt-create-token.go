@@ -49,7 +49,7 @@ var createTokenCmd = &cobra.Command{
 			jwtSecretKey = os.Getenv("JWT_SECRET_KEY")
 		}
 		if jwtSecretKey == "" {
-			return fmt.Errorf("JWT secret key is required; use --jwt-secret-key flag or set JWT_SECRET_KEY environment variable")
+			return fmt.Errorf("jwt secret key is required; use --jwt-secret-key flag or set JWT_SECRET_KEY environment variable")
 		}
 
 		var expiresAt time.Time

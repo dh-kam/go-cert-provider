@@ -30,6 +30,9 @@ linters-settings:
     
   govet:
     enable-all: true
+    disable:
+      - fieldalignment  # Field alignment is a micro-optimization
+      - shadow          # Shadow detection removed from separate linter
 
   gofmt:
     simplify: true

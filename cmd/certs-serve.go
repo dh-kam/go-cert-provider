@@ -170,12 +170,11 @@ For more information, see: go-cert-provider domain list --help`)
 			<-sigChan
 
 			fmt.Println("\nShutting down server...")
-			if err := srv.Shutdown(context.Background()); err != nil {
-				fmt.Printf("Server forced to shutdown: %v\n", err)
+			if shutdownErr := srv.Shutdown(context.Background()); shutdownErr != nil {
+				fmt.Printf("Server forced to shutdown: %v\n", shutdownErr)
 			}
 			fmt.Println("Server exiting")
 		}()
-
 
 		fmt.Printf("Server starting on %s\n", serverConfig.GetListenAddr())
 		fmt.Printf("GraphQL Playground: http://%s/\n", serverConfig.GetListenAddr())
