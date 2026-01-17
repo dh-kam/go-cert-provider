@@ -90,7 +90,7 @@ var createTokenCmd = &cobra.Command{
 				}
 
 				if err != nil {
-					return fmt.Errorf("invalid expires-at format; use duration (e.g., '2y', '3months', '5d') or date/time format (YYYY-MM-DD HH:mm:ss, YYYY-MM-DD)")
+					return fmt.Errorf("invalid expires-at format, use duration (e.g., '2y', '3months', '5d') or date/time format (YYYY-MM-DD HH:mm:ss, YYYY-MM-DD)")
 				}
 			}
 		} else {

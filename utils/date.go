@@ -35,10 +35,11 @@ func FormatDuration(d time.Duration) string {
 	if d < 24*time.Hour {
 		return d.Round(time.Hour).String()
 	}
-	days := int(d.Hours() / 24)
-	hours := int(d.Hours()) % 24
-	if days > 0 && hours > 0 {
-		return fmt.Sprintf("%d days %d hours", days, hours)
+	totalHours := d.Hours()
+	days := int(totalHours / 24)
+	remainingHours := int(totalHours) - (days * 24)
+	if days > 0 && remainingHours > 0 {
+		return fmt.Sprintf("%d days %d hours", days, remainingHours)
 	}
 	if days > 0 {
 		return fmt.Sprintf("%d days", days)
