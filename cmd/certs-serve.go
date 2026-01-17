@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -18,12 +19,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 )
-
-type serveCommandOptions struct {
-	listenPort   int
-	listenAddr   string
-	jwtSecretKey string
-}
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
@@ -49,9 +44,18 @@ Examples:
     --porkbun-secret-key "your-secret" \
     --porkbun-domains "example.com,test.com"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		listenPort, _ := cmd.Flags().GetInt("listen-port")
-		listenAddr, _ := cmd.Flags().GetString("listen-addr")
-		jwtSecretKey, _ := cmd.Flags().GetString("jwt-secret-key")
+		listenPort, err := cmd.Flags().GetInt("listen-port")
+		if err != nil {
+			return err
+		}
+		listenAddr, err := cmd.Flags().GetString("listen-addr")
+		if err != nil {
+			return err
+		}
+		jwtSecretKey, err := cmd.Flags().GetString("jwt-secret-key")
+		if err != nil {
+			return err
+		}
 
 		if appState == nil {
 			return fmt.Errorf("certificate system not initialized")
@@ -155,8 +159,9 @@ For more information, see: go-cert-provider domain list --help`)
 		})
 
 		srv := &http.Server{
-			Addr:    serverConfig.GetListenAddr(),
-			Handler: router,
+			Addr:              serverConfig.GetListenAddr(),
+			Handler:           router,
+			ReadHeaderTimeout: 10 * time.Second,
 		}
 
 		go func() {
@@ -171,11 +176,12 @@ For more information, see: go-cert-provider domain list --help`)
 			fmt.Println("Server exiting")
 		}()
 
+
 		fmt.Printf("Server starting on %s\n", serverConfig.GetListenAddr())
 		fmt.Printf("GraphQL Playground: http://%s/\n", serverConfig.GetListenAddr())
 		fmt.Printf("GraphQL Endpoint: http://%s/graphql\n", serverConfig.GetListenAddr())
 		fmt.Printf("Health Check: http://%s/health\n", serverConfig.GetListenAddr())
-		
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return fmt.Errorf("failed to start server: %v", err)
 		}
@@ -185,9 +191,10 @@ For more information, see: go-cert-provider domain list --help`)
 }
 
 func init() {
-	serveCmd.Flags().Int("listen-port", 0, "Port to listen on (overrides LISTEN_PORT env var)")
-	serveCmd.Flags().String("listen-addr", "", "Address to listen on (overrides LISTEN_ADDR env var)")
-	serveCmd.Flags().String("jwt-secret-key", "", "JWT secret key for token verification (overrides JWT_SECRET_KEY env var)")
+	flags := serveCmd.Flags()
+	flags.Int("listen-port", 0, "Port to listen on (overrides LISTEN_PORT env var)")
+	flags.String("listen-addr", "", "Address to listen on (overrides LISTEN_ADDR env var)")
+	flags.String("jwt-secret-key", "", "JWT secret key for token verification (overrides JWT_SECRET_KEY env var)")
 
 	certsCmd.AddCommand(serveCmd)
 }

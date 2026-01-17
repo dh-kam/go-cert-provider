@@ -21,15 +21,15 @@ func InitializeCertificateSystem(cmd *cobra.Command) (*registry.CertificateProvi
 
 	// Create registry
 	globalProviderRegistry = registry.NewCertificateProviderRegistry()
-	
+
 	// Create bootstrap manager
 	globalBootstrapManager = registry.NewBootstrapManager(globalProviderRegistry)
-	
+
 	// Register all provider bootstraps
 	globalBootstrapManager.RegisterBootstrap(porkbun.NewBootstrap())
 	// Future providers can be registered here:
 	// globalBootstrapManager.RegisterBootstrap(cloudflare.NewBootstrap())
 	// globalBootstrapManager.RegisterBootstrap(route53.NewBootstrap())
-	
+
 	return globalProviderRegistry, globalBootstrapManager, nil
 }

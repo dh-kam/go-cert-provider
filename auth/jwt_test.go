@@ -168,7 +168,7 @@ func TestCreateJWT_EmptyFields(t *testing.T) {
 
 func TestJWT_RoundTrip(t *testing.T) {
 	secretKey := "test-secret-key-32-bytes-long!!"
-	
+
 	testCases := []struct {
 		name           string
 		userID         string

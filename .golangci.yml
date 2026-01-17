@@ -20,7 +20,7 @@ linters:
     - revive        # Fast, configurable, extensible, flexible, and beautiful linter
     - gosec         # Inspects source code for security problems
     - unconvert     # Remove unnecessary type conversions
-    - exportloopref # Check for pointers to enclosing loop variables
+    - copyloopvar   # Check for pointers to enclosing loop variables
     - nolintlint    # Reports ill-formed or insufficient nolint directives
 
 linters-settings:

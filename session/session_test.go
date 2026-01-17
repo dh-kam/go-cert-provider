@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-func TestSessionManager_CreateAndGet(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_CreateAndGet(t *testing.T) {
+	manager := NewManager()
 
 	userID := "test-user"
 	description := "Test User"
@@ -53,8 +53,8 @@ func TestSessionManager_CreateAndGet(t *testing.T) {
 	}
 }
 
-func TestSessionManager_DeleteSession(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_DeleteSession(t *testing.T) {
+	manager := NewManager()
 
 	sessionID := manager.CreateSession("user1", "User One", time.Now().Add(1*time.Hour), []string{"example.com"})
 	_, exists := manager.GetSession(sessionID)
@@ -71,8 +71,8 @@ func TestSessionManager_DeleteSession(t *testing.T) {
 	}
 }
 
-func TestSessionManager_ExpiredSession(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_ExpiredSession(t *testing.T) {
+	manager := NewManager()
 
 	sessionID := manager.CreateSession(
 		"expired-user",
@@ -86,8 +86,8 @@ func TestSessionManager_ExpiredSession(t *testing.T) {
 	}
 }
 
-func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_CleanupExpiredSessions(t *testing.T) {
+	manager := NewManager()
 
 	validID := manager.CreateSession("valid-user", "Valid", time.Now().Add(1*time.Hour), []string{"example.com"})
 	expiredID := manager.CreateSession("expired-user", "Expired", time.Now().Add(-1*time.Hour), []string{"test.com"})
@@ -107,8 +107,8 @@ func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 	}
 }
 
-func TestSessionManager_MultipleSessions(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_MultipleSessions(t *testing.T) {
+	manager := NewManager()
 
 	sessions := make(map[string]string)
 	expiresAt := time.Now().Add(1 * time.Hour)
@@ -132,8 +132,8 @@ func TestSessionManager_MultipleSessions(t *testing.T) {
 	}
 }
 
-func TestSessionManager_GetNonExistentSession(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_GetNonExistentSession(t *testing.T) {
+	manager := NewManager()
 
 	_, exists := manager.GetSession("non-existent-session-id")
 	if exists {
@@ -141,20 +141,20 @@ func TestSessionManager_GetNonExistentSession(t *testing.T) {
 	}
 }
 
-func TestSessionManager_DeleteNonExistentSession(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_DeleteNonExistentSession(t *testing.T) {
+	manager := NewManager()
 
 	// Should not panic when deleting non-existent session
 	manager.DeleteSession("non-existent-session-id")
 }
 
-func TestGlobalSessionManager(t *testing.T) {
-	manager1 := GetGlobalSessionManager()
+func TestGlobalManager(t *testing.T) {
+	manager1 := GetGlobalManager()
 	if manager1 == nil {
 		t.Fatal("Global session manager should not be nil")
 	}
 
-	manager2 := GetGlobalSessionManager()
+	manager2 := GetGlobalManager()
 	if manager1 != manager2 {
 		t.Error("Global session manager should return the same instance")
 	}
@@ -168,15 +168,15 @@ func TestGlobalSessionManager(t *testing.T) {
 	manager1.DeleteSession(sessionID)
 }
 
-func TestSessionManager_UniqueSessionIDs(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_UniqueSessionIDs(t *testing.T) {
+	manager := NewManager()
 
 	expiresAt := time.Now().Add(1 * time.Hour)
 	sessionIDs := make(map[string]bool)
 
 	for i := 0; i < 100; i++ {
 		sessionID := manager.CreateSession("same-user", "Same User", expiresAt, []string{"example.com"})
-		
+
 		if sessionIDs[sessionID] {
 			t.Fatalf("Duplicate session ID detected: %s", sessionID)
 		}
@@ -184,8 +184,8 @@ func TestSessionManager_UniqueSessionIDs(t *testing.T) {
 	}
 }
 
-func TestSessionManager_ConcurrentAccess(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_ConcurrentAccess(t *testing.T) {
+	manager := NewManager()
 	expiresAt := time.Now().Add(1 * time.Hour)
 
 	done := make(chan bool)
@@ -210,8 +210,8 @@ func TestSessionManager_ConcurrentAccess(t *testing.T) {
 	manager.CleanupExpiredSessions()
 }
 
-func TestSessionManager_EmptyFields(t *testing.T) {
-	manager := NewSessionManager()
+func TestManager_EmptyFields(t *testing.T) {
+	manager := NewManager()
 	expiresAt := time.Now().Add(1 * time.Hour)
 
 	tests := []struct {
@@ -229,7 +229,7 @@ func TestSessionManager_EmptyFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sessionID := manager.CreateSession(tt.userID, tt.description, expiresAt, tt.allowedDomains)
-			
+
 			if sessionID == "" {
 				t.Error("Session ID should not be empty even with empty fields")
 			}

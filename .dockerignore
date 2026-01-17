@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+.github
+
+# Build artifacts (keep linux-amd64/release and linux-arm64/release)
+build/current
+build/windows-x86_64
+build/darwin-amd64
+build/darwin-arm64
+build/linux-amd64/debug
+build/linux-arm64/debug
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Testing
+*_test.go
+**/*_test.go
+coverage.txt
+codecov.yml
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Dependencies
+vendor/
+go.sum
+
+# Misc
+.env
+*.log
+tmp/

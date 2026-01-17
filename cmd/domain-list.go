@@ -41,8 +41,14 @@ Examples:
     --porkbun-domains "example.com,test.com"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Get options from command flags
-		outputFormat, _ := cmd.Flags().GetString("output")
-		showDetail, _ := cmd.Flags().GetBool("detail")
+		outputFormat, err := cmd.Flags().GetString("output")
+		if err != nil {
+			return err
+		}
+		showDetail, err := cmd.Flags().GetBool("detail")
+		if err != nil {
+			return err
+		}
 
 		// Use global app state (initialized in PersistentPreRunE)
 		if appState == nil {
@@ -50,9 +56,9 @@ Examples:
 		}
 
 		providerRegistry := appState.providerRegistry
-		
+
 		domains := providerRegistry.ListDomains()
-		
+
 		if len(domains) == 0 {
 			fmt.Fprintln(cmd.OutOrStderr(), "No domains found")
 			return nil
@@ -82,14 +88,14 @@ func outputSimple(cmd *cobra.Command, domains []string) error {
 
 func outputTable(cmd *cobra.Command, domains []string, registry interface{}, showDetail bool) error {
 	providerRegistry := appState.providerRegistry
-	
+
 	allDomainInfo := providerRegistry.ListAllDomainInfo()
-	
-	infoMap := make(map[string]*domain.DomainInfo)
+
+	infoMap := make(map[string]*domain.Info)
 	for i := range allDomainInfo {
 		infoMap[allDomainInfo[i].Name] = &allDomainInfo[i]
 	}
-	
+
 	if showDetail {
 		maxDomainLen := 6 // "DOMAIN"
 		for _, d := range domains {
@@ -98,10 +104,10 @@ func outputTable(cmd *cobra.Command, domains []string, registry interface{}, sho
 			}
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "%-*s  %-8s  %-10s  %-19s  %-19s\n", 
+		fmt.Fprintf(cmd.OutOrStdout(), "%-*s  %-8s  %-10s  %-19s  %-19s\n",
 			maxDomainLen, "DOMAIN", "PROVIDER", "STATUS", "CREATED", "EXPIRES")
-		fmt.Fprintf(cmd.OutOrStdout(), "%s  %s  %s  %s  %s\n", 
-			strings.Repeat("-", maxDomainLen), 
+		fmt.Fprintf(cmd.OutOrStdout(), "%s  %s  %s  %s  %s\n",
+			strings.Repeat("-", maxDomainLen),
 			strings.Repeat("-", 8),
 			strings.Repeat("-", 10),
 			strings.Repeat("-", 19),
@@ -112,10 +118,10 @@ func outputTable(cmd *cobra.Command, domains []string, registry interface{}, sho
 			if info != nil {
 				created := formatDate(info.CreateDate)
 				expires := formatDate(info.ExpireDate)
-				fmt.Fprintf(cmd.OutOrStdout(), "%-*s  %-8s  %-10s  %-19s  %-19s\n", 
+				fmt.Fprintf(cmd.OutOrStdout(), "%-*s  %-8s  %-10s  %-19s  %-19s\n",
 					maxDomainLen, domainName, info.Provider, info.Status, created, expires)
 			} else {
-				fmt.Fprintf(cmd.OutOrStdout(), "%-*s  %-8s  %-10s  %-19s  %-19s\n", 
+				fmt.Fprintf(cmd.OutOrStdout(), "%-*s  %-8s  %-10s  %-19s  %-19s\n",
 					maxDomainLen, domainName, "unknown", "UNKNOWN", "-", "-")
 			}
 		}
@@ -126,7 +132,7 @@ func outputTable(cmd *cobra.Command, domains []string, registry interface{}, sho
 			fmt.Fprintln(cmd.OutOrStdout(), domainName)
 		}
 	}
-	
+
 	fmt.Fprintf(cmd.OutOrStderr(), "\nTotal: %d domain(s)\n", len(domains))
 	return nil
 }
@@ -141,16 +147,16 @@ func formatDate(t time.Time) string {
 
 func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, showDetail bool) error {
 	providerRegistry := appState.providerRegistry
-	
+
 	// Get all domain info
 	allDomainInfo := providerRegistry.ListAllDomainInfo()
-	
+
 	// Create a map for quick lookup
-	infoMap := make(map[string]*domain.DomainInfo)
+	infoMap := make(map[string]*domain.Info)
 	for i := range allDomainInfo {
 		infoMap[allDomainInfo[i].Name] = &allDomainInfo[i]
 	}
-	
+
 	if showDetail {
 		// Build domain-provider map with full info
 		type domainInfoJSON struct {
@@ -160,7 +166,7 @@ func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, show
 			CreateDate string `json:"createDate,omitempty"`
 			ExpireDate string `json:"expireDate,omitempty"`
 		}
-		
+
 		var domainInfos []domainInfoJSON
 		for _, domainName := range domains {
 			info := infoMap[domainName]
@@ -173,7 +179,7 @@ func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, show
 				if !info.ExpireDate.IsZero() {
 					expires = info.ExpireDate.Format(time.RFC3339)
 				}
-				
+
 				domainInfos = append(domainInfos, domainInfoJSON{
 					Domain:     domainName,
 					Provider:   info.Provider,
@@ -189,7 +195,7 @@ func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, show
 				})
 			}
 		}
-		
+
 		fmt.Fprintln(cmd.OutOrStdout(), "{")
 		fmt.Fprintf(cmd.OutOrStdout(), "  \"total\": %d,\n", len(domains))
 		fmt.Fprintln(cmd.OutOrStdout(), "  \"domains\": [")
@@ -198,7 +204,7 @@ func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, show
 			if i == len(domainInfos)-1 {
 				comma = ""
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "    {\"domain\": \"%s\", \"provider\": \"%s\", \"status\": \"%s\"", 
+			fmt.Fprintf(cmd.OutOrStdout(), "    {\"domain\": \"%s\", \"provider\": \"%s\", \"status\": \"%s\"",
 				info.Domain, info.Provider, info.Status)
 			if info.CreateDate != "" {
 				fmt.Fprintf(cmd.OutOrStdout(), ", \"createDate\": \"%s\"", info.CreateDate)
@@ -224,7 +230,7 @@ func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, show
 		fmt.Fprintln(cmd.OutOrStdout(), "  ]")
 		fmt.Fprintln(cmd.OutOrStdout(), "}")
 	}
-	
+
 	return nil
 }
 

@@ -36,7 +36,7 @@ func (bm *BootstrapManager) RegisterFlags(cmd *cobra.Command) {
 // InitializeProviders initializes all configured providers and registers them
 func (bm *BootstrapManager) InitializeProviders() error {
 	configuredCount := 0
-	
+
 	for _, bootstrap := range bm.bootstraps {
 		if !bootstrap.IsConfigured() {
 			continue
@@ -44,12 +44,12 @@ func (bm *BootstrapManager) InitializeProviders() error {
 
 		provider, err := bootstrap.CreateProvider()
 		if err != nil {
-			return fmt.Errorf("failed to create provider %s: %w", 
+			return fmt.Errorf("failed to create provider %s: %w",
 				bootstrap.GetProviderName(), err)
 		}
 
 		if err := bm.registry.Register(provider); err != nil {
-			return fmt.Errorf("failed to register provider %s: %w", 
+			return fmt.Errorf("failed to register provider %s: %w",
 				bootstrap.GetProviderName(), err)
 		}
 
@@ -66,12 +66,12 @@ func (bm *BootstrapManager) InitializeProviders() error {
 // GetConfiguredProviders returns a list of configured provider names
 func (bm *BootstrapManager) GetConfiguredProviders() []string {
 	configured := make([]string, 0)
-	
+
 	for _, bootstrap := range bm.bootstraps {
 		if bootstrap.IsConfigured() {
 			configured = append(configured, bootstrap.GetProviderName())
 		}
 	}
-	
+
 	return configured
 }

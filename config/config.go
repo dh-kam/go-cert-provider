@@ -60,4 +60,4 @@ func (c *ServerConfig) SetAddr(addr string) {
 // GetListenAddr returns the full listen address string
 func (c *ServerConfig) GetListenAddr() string {
 	return fmt.Sprintf("%s:%d", c.Addr, c.Port)
-} 
+}

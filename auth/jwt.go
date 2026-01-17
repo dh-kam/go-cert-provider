@@ -21,7 +21,7 @@ func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
 		// Use secret verification if provided
 		return ValidateJWTWithSecret(tokenString, secret)
 	}
-	
+
 	// Parse without verification (for testing only)
 	return parseJWTWithoutVerification(tokenString)
 }

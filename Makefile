@@ -2,9 +2,10 @@
 	build-all build-all-debug build-all-release \
 	linux-amd64-debug linux-amd64-release \
 	linux-arm64-debug linux-arm64-release \
-	windows-amd64-debug windows-amd64-release \
+	windows-x86_64-debug windows-x86_64-release \
 	darwin-amd64-debug darwin-amd64-release \
-	darwin-arm64-debug darwin-arm64-release
+	darwin-arm64-debug darwin-arm64-release \
+	build-image
 
 # Check if ANSI colors are supported
 ifeq ($(shell tput colors 2>/dev/null),)
@@ -44,7 +45,21 @@ RELEASE_LDFLAGS := $(DEBUG_LDFLAGS) -s -w -extldflags '-static'
 DEBUG_GCFLAGS := all=-N -l
 
 # Platform configurations
-PLATFORMS := linux-amd64 linux-arm64 windows-amd64 darwin-amd64 darwin-arm64
+PLATFORMS := linux-amd64 linux-arm64 windows-x86_64 darwin-amd64 darwin-arm64
+
+# Detect current architecture
+HOST_ARCH := $(shell uname -m)
+ifeq ($(HOST_ARCH),x86_64)
+    GOARCH_CURRENT := amd64
+else ifeq ($(HOST_ARCH),aarch64)
+    GOARCH_CURRENT := arm64
+else ifeq ($(HOST_ARCH),arm64)
+    GOARCH_CURRENT := arm64
+else
+    GOARCH_CURRENT := amd64
+endif
+
+LINUX_PLATFORM := linux-$(GOARCH_CURRENT)
 
 # Helper function to get platform directory
 platform_dir = $(BUILD_DIR)/$(1)/$(2)
@@ -61,9 +76,9 @@ all: debug release
 # Build all platforms and modes
 build-all: build-all-debug build-all-release
 
-build-all-debug: linux-amd64-debug linux-arm64-debug windows-amd64-debug darwin-amd64-debug darwin-arm64-debug
+build-all-debug: linux-amd64-debug linux-arm64-debug windows-x86_64-debug darwin-amd64-debug darwin-arm64-debug
 
-build-all-release: linux-amd64-release linux-arm64-release windows-amd64-release darwin-amd64-release darwin-arm64-release
+build-all-release: linux-amd64-release linux-arm64-release windows-x86_64-release darwin-amd64-release darwin-arm64-release
 
 # Current platform debug/release (no platform suffix)
 debug: $(BUILD_DIR)/current/debug/$(BINARY_NAME)
@@ -131,23 +146,23 @@ $(BUILD_DIR)/linux-arm64/release/$(BINARY_NAME): $(GO_SOURCES)
 		-o $@ .
 	@echo "$(GREEN)Release build completed: $@$(RESET)"
 
-# Windows AMD64
-windows-amd64-debug: $(BUILD_DIR)/windows-amd64/debug/$(BINARY_NAME).exe
+# Windows x86_64 (amd64)
+windows-x86_64-debug: $(BUILD_DIR)/windows-x86_64/debug/$(BINARY_NAME).exe
 
-$(BUILD_DIR)/windows-amd64/debug/$(BINARY_NAME).exe: $(GO_SOURCES)
-	@echo "$(BLUE)Building debug version for windows-amd64...$(RESET)"
-	@mkdir -p $(BUILD_DIR)/windows-amd64/debug
+$(BUILD_DIR)/windows-x86_64/debug/$(BINARY_NAME).exe: $(GO_SOURCES)
+	@echo "$(BLUE)Building debug version for windows-x86_64...$(RESET)"
+	@mkdir -p $(BUILD_DIR)/windows-x86_64/debug
 	@CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO_BUILD) $(GO_FLAGS) \
 		-ldflags="$(DEBUG_LDFLAGS)" \
 		-gcflags="$(DEBUG_GCFLAGS)" \
 		-o $@ .
 	@echo "$(GREEN)Debug build completed: $@$(RESET)"
 
-windows-amd64-release: $(BUILD_DIR)/windows-amd64/release/$(BINARY_NAME).exe
+windows-x86_64-release: $(BUILD_DIR)/windows-x86_64/release/$(BINARY_NAME).exe
 
-$(BUILD_DIR)/windows-amd64/release/$(BINARY_NAME).exe: $(GO_SOURCES)
-	@echo "$(BLUE)Building release version for windows-amd64...$(RESET)"
-	@mkdir -p $(BUILD_DIR)/windows-amd64/release
+$(BUILD_DIR)/windows-x86_64/release/$(BINARY_NAME).exe: $(GO_SOURCES)
+	@echo "$(BLUE)Building release version for windows-x86_64...$(RESET)"
+	@mkdir -p $(BUILD_DIR)/windows-x86_64/release
 	@CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO_BUILD) $(GO_FLAGS) \
 		-ldflags="$(RELEASE_LDFLAGS)" \
 		-o $@ .
@@ -216,6 +231,22 @@ gen:
 	@gqlgen generate
 	@echo "$(GREEN)GraphQL code generated$(RESET)"
 
+# Docker image build
+IMAGE_NAME ?= go-cert-provider
+IMAGE_TAG ?= $(VERSION)
+
+build-image: $(LINUX_PLATFORM)-release
+	@echo "$(BLUE)Building Docker image for $(GOARCH_CURRENT) architecture...$(RESET)"
+	@echo "$(BLUE)Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)...$(RESET)"
+	@docker build \
+		--build-arg ARCH=$(GOARCH_CURRENT) \
+		-t $(IMAGE_NAME):$(IMAGE_TAG) .
+	@docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
+	@echo "$(GREEN)Docker image built successfully:$(RESET)"
+	@echo "  $(IMAGE_NAME):$(IMAGE_TAG)"
+	@echo "  $(IMAGE_NAME):latest"
+	@echo "  Architecture: $(GOARCH_CURRENT)"
+
 # Show help
 help:
 	@echo "$(BOLD)Available targets:$(RESET)"
@@ -235,8 +266,8 @@ help:
 	@echo "  $(BLUE)linux-amd64-release$(RESET)  - Linux AMD64 release build (static)"
 	@echo "  $(BLUE)linux-arm64-debug$(RESET)    - Linux ARM64 debug build"
 	@echo "  $(BLUE)linux-arm64-release$(RESET)  - Linux ARM64 release build (static)"
-	@echo "  $(BLUE)windows-amd64-debug$(RESET)  - Windows AMD64 debug build"
-	@echo "  $(BLUE)windows-amd64-release$(RESET) - Windows AMD64 release build (static)"
+	@echo "  $(BLUE)windows-x86_64-debug$(RESET)  - Windows x86_64 debug build"
+	@echo "  $(BLUE)windows-x86_64-release$(RESET) - Windows x86_64 release build (static)"
 	@echo "  $(BLUE)darwin-amd64-debug$(RESET)   - macOS Intel debug build"
 	@echo "  $(BLUE)darwin-amd64-release$(RESET) - macOS Intel release build (static)"
 	@echo "  $(BLUE)darwin-arm64-debug$(RESET)   - macOS Apple Silicon debug build"
@@ -246,6 +277,7 @@ help:
 	@echo "  $(BLUE)clean$(RESET)            - Remove all build artifacts"
 	@echo "  $(BLUE)deps$(RESET)             - Update Go dependencies"
 	@echo "  $(BLUE)gen$(RESET)              - Generate GraphQL code"
+	@echo "  $(BLUE)build-image$(RESET)      - Build Docker image (alpine-based) from linux-amd64-release"
 	@echo "  $(BLUE)help$(RESET)             - Show this help message"
 	@echo ""
 	@echo "$(YELLOW)Build configurations:$(RESET)"
@@ -256,7 +288,7 @@ help:
 	@echo "  build/current/{debug,release}/$(BINARY_NAME)           - Current platform builds"
 	@echo "  build/linux-amd64/{debug,release}/$(BINARY_NAME)       - Linux AMD64 builds"
 	@echo "  build/linux-arm64/{debug,release}/$(BINARY_NAME)       - Linux ARM64 builds"
-	@echo "  build/windows-amd64/{debug,release}/$(BINARY_NAME).exe - Windows AMD64 builds"
+	@echo "  build/windows-x86_64/{debug,release}/$(BINARY_NAME).exe - Windows x86_64 builds"
 	@echo "  build/darwin-amd64/{debug,release}/$(BINARY_NAME)      - macOS Intel builds"
 	@echo "  build/darwin-arm64/{debug,release}/$(BINARY_NAME)      - macOS Apple Silicon builds"
 	@echo ""

@@ -39,11 +39,11 @@ func FormatDuration(d time.Duration) string {
 	hours := int(d.Hours()) % 24
 	if days > 0 && hours > 0 {
 		return fmt.Sprintf("%d days %d hours", days, hours)
-	} else if days > 0 {
-		return fmt.Sprintf("%d days", days)
-	} else {
-		return d.Round(time.Hour).String()
 	}
+	if days > 0 {
+		return fmt.Sprintf("%d days", days)
+	}
+	return d.Round(time.Hour).String()
 }
 
 // ParseDurationString parses duration strings with extended support for years, months, weeks
@@ -69,18 +69,18 @@ func ParseDurationString(s string) (time.Duration, error) {
 	d := 24 * time.Hour
 
 	units := map[string]time.Duration{
-		"y":       y,
-		"year":    y,
-		"years":   y,
-		"m":       m,
-		"month":   m,
-		"months":  m,
-		"w":       w,
-		"week":    w,
-		"weeks":   w,
-		"d":       d,
-		"day":     d,
-		"days":    d,
+		"y":      y,
+		"year":   y,
+		"years":  y,
+		"m":      m,
+		"month":  m,
+		"months": m,
+		"w":      w,
+		"week":   w,
+		"weeks":  w,
+		"d":      d,
+		"day":    d,
+		"days":   d,
 	}
 
 	// Parse number + unit combinations
@@ -91,11 +91,11 @@ func ParseDurationString(s string) (time.Duration, error) {
 		for i < len(remaining) && (remaining[i] >= '0' && remaining[i] <= '9' || remaining[i] == '.') {
 			i++
 		}
-		
+
 		if i == start {
 			return 0, fmt.Errorf("invalid duration format: %s", s)
 		}
-		
+
 		numStr := remaining[start:i]
 		var num float64
 		var err error
@@ -109,28 +109,28 @@ func ParseDurationString(s string) (time.Duration, error) {
 		if err != nil {
 			return 0, fmt.Errorf("invalid number in duration: %s", numStr)
 		}
-		
+
 		unitStart := i
 		for i < len(remaining) && (remaining[i] < '0' || remaining[i] > '9') && remaining[i] != '.' {
 			i++
 		}
-		
+
 		unitStr := remaining[unitStart:i]
 		if unitStr == "" {
 			return 0, fmt.Errorf("missing unit after number %s", numStr)
 		}
-		
+
 		unitDuration, exists := units[strings.ToLower(unitStr)]
 		if !exists {
 			return 0, fmt.Errorf("unknown duration unit: %s", unitStr)
 		}
-		
+
 		total += time.Duration(float64(unitDuration) * num)
 	}
-	
+
 	if total == 0 {
 		return 0, fmt.Errorf("invalid duration format: %s", s)
 	}
-	
+
 	return total, nil
 }

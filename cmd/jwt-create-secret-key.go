@@ -15,7 +15,7 @@ var createSecretKeyCmd = &cobra.Command{
 	Long:  "Generate a cryptographically secure random string for JWT signing",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			cmd.Usage()
+			_ = cmd.Usage()
 			return fmt.Errorf("this command does not take any arguments")
 		}
 		return nil
@@ -24,7 +24,7 @@ var createSecretKeyCmd = &cobra.Command{
 		// Generate 32 bytes (256 bits) of random data
 		// This is recommended for HMAC-SHA256
 		secretBytes := make([]byte, 32)
-		
+
 		_, err := rand.Read(secretBytes)
 		if err != nil {
 			return fmt.Errorf("failed to generate random secret: %w", err)
@@ -32,20 +32,20 @@ var createSecretKeyCmd = &cobra.Command{
 
 		// Encode to base64 for easy use
 		secretKey := base64.StdEncoding.EncodeToString(secretBytes)
-		
+
 		// Define styles
 		titleStyle := lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("12"))
-		
+
 		greenStyle := lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("10"))
-		
+
 		usageStyle := lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("14"))
-		
+
 		fmt.Println(titleStyle.Render("Generated JWT Secret Key (base64 encoded):"))
 		fmt.Println("   ", greenStyle.Render(secretKey))
 		fmt.Println()

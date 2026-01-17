@@ -34,7 +34,7 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 	}
 
 	// Create session
-	sessionManager := session.GetGlobalSessionManager()
+	sessionManager := session.GetGlobalManager()
 	sessionID := sessionManager.CreateSession(
 		claims.UserID,
 		claims.Description,
@@ -72,7 +72,7 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 		sessionID, err := ginCtx.Cookie("session_id")
 		if err == nil && sessionID != "" {
 			// Delete session
-			sessionManager := session.GetGlobalSessionManager()
+			sessionManager := session.GetGlobalManager()
 			sessionManager.DeleteSession(sessionID)
 
 			// Clear cookie
@@ -118,7 +118,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 		}
 
 		// Get session
-		sessionManager := session.GetGlobalSessionManager()
+		sessionManager := session.GetGlobalManager()
 		userSession, exists := sessionManager.GetSession(sessionID)
 		if !exists {
 			return nil, nil // Session not found or expired

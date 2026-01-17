@@ -59,7 +59,7 @@ make release
 
 # Or build for specific platform
 make linux-amd64-release
-make windows-amd64-release
+make windows-x86_64-release
 make darwin-arm64-release
 
 # Build all platforms

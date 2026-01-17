@@ -28,7 +28,7 @@ func (r *CertificateProviderRegistry) Register(provider domain.CertificateProvid
 	defer r.mu.Unlock()
 
 	providerName := provider.GetProviderName()
-	
+
 	if _, exists := r.providers[providerName]; exists {
 		return fmt.Errorf("provider %s is already registered", providerName)
 	}
@@ -41,7 +41,7 @@ func (r *CertificateProviderRegistry) Register(provider domain.CertificateProvid
 
 	for _, domain := range provider.GetDomains() {
 		if existingProvider, exists := r.domainMap[domain]; exists {
-			return fmt.Errorf("domain %s is already managed by provider %s", 
+			return fmt.Errorf("domain %s is already managed by provider %s",
 				domain, existingProvider.GetProviderName())
 		}
 		r.domainMap[domain] = provider
@@ -111,7 +111,7 @@ func (r *CertificateProviderRegistry) RetrieveCertificate(domain string) ([]byte
 }
 
 // GetDomainInfo returns detailed information about a specific domain
-func (r *CertificateProviderRegistry) GetDomainInfo(domainName string) *domain.DomainInfo {
+func (r *CertificateProviderRegistry) GetDomainInfo(domainName string) *domain.Info {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -124,12 +124,12 @@ func (r *CertificateProviderRegistry) GetDomainInfo(domainName string) *domain.D
 }
 
 // ListAllDomainInfo returns detailed information for all managed domains
-func (r *CertificateProviderRegistry) ListAllDomainInfo() []domain.DomainInfo {
+func (r *CertificateProviderRegistry) ListAllDomainInfo() []domain.Info {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var allInfos []domain.DomainInfo
-	
+	var allInfos []domain.Info
+
 	for _, provider := range r.providers {
 		infos := provider.ListDomainInfo()
 		allInfos = append(allInfos, infos...)

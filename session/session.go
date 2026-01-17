@@ -18,26 +18,26 @@ type UserSession struct {
 	LastAccessedAt time.Time `json:"last_accessed_at"`
 }
 
-// SessionManager manages user sessions in memory
-type SessionManager struct {
+// Manager manages user sessions in memory
+type Manager struct {
 	sessions map[string]*UserSession
 	mutex    sync.RWMutex
 }
 
-// NewSessionManager creates a new session manager
-func NewSessionManager() *SessionManager {
-	sm := &SessionManager{
+// NewManager creates a new session manager
+func NewManager() *Manager {
+	sm := &Manager{
 		sessions: make(map[string]*UserSession),
 	}
-	
+
 	// Start cleanup routine for expired sessions
 	go sm.cleanupExpiredSessions()
-	
+
 	return sm
 }
 
 // CreateSession creates a new session and returns session ID
-func (sm *SessionManager) CreateSession(userID, description string, expireDate time.Time, allowedDomains []string) string {
+func (sm *Manager) CreateSession(userID, description string, expireDate time.Time, allowedDomains []string) string {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
@@ -65,7 +65,7 @@ func (sm *SessionManager) CreateSession(userID, description string, expireDate t
 }
 
 // GetSession retrieves a session by ID
-func (sm *SessionManager) GetSession(sessionID string) (*UserSession, bool) {
+func (sm *Manager) GetSession(sessionID string) (*UserSession, bool) {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
 
@@ -84,7 +84,7 @@ func (sm *SessionManager) GetSession(sessionID string) (*UserSession, bool) {
 }
 
 // DeleteSession removes a session
-func (sm *SessionManager) DeleteSession(sessionID string) {
+func (sm *Manager) DeleteSession(sessionID string) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
@@ -92,7 +92,7 @@ func (sm *SessionManager) DeleteSession(sessionID string) {
 }
 
 // CleanupExpiredSessions manually triggers cleanup of expired sessions (for testing)
-func (sm *SessionManager) CleanupExpiredSessions() {
+func (sm *Manager) CleanupExpiredSessions() {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
@@ -103,7 +103,7 @@ func (sm *SessionManager) CleanupExpiredSessions() {
 		}
 	}
 }
-func (sm *SessionManager) cleanupExpiredSessions() {
+func (sm *Manager) cleanupExpiredSessions() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -120,12 +120,12 @@ func (sm *SessionManager) cleanupExpiredSessions() {
 }
 
 // Global session manager instance
-var globalSessionManager *SessionManager
+var globalManager *Manager
 
-// GetGlobalSessionManager returns the global session manager instance
-func GetGlobalSessionManager() *SessionManager {
-	if globalSessionManager == nil {
-		globalSessionManager = NewSessionManager()
+// GetGlobalManager returns the global session manager instance
+func GetGlobalManager() *Manager {
+	if globalManager == nil {
+		globalManager = NewManager()
 	}
-	return globalSessionManager
+	return globalManager
 }

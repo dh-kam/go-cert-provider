@@ -23,7 +23,7 @@ var verifyTokenCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		token := args[0]
-		
+
 		options, ok := cmd.Context().Value(KeyForOptions).(*verifyJwtTokenOptions)
 		if !ok {
 			return fmt.Errorf("failed to get command options from context")
@@ -45,30 +45,30 @@ var verifyTokenCmd = &cobra.Command{
 		fmt.Printf("  User ID: %s\n", claims.UserID)
 		fmt.Printf("  Description: %s\n", claims.Description)
 		fmt.Printf("  Allowed Domains: %s\n", strings.Join(claims.AllowedDomains, ", "))
-		
+
 		if claims.ExpiresAt != nil {
 			fmt.Printf("  Expires At: %s\n", utils.FormatDateTime(claims.ExpiresAt.Time))
-			
+
 			if time.Now().After(claims.ExpiresAt.Time) {
 				fmt.Printf("  Status: ⚠️  EXPIRED\n")
-			} else {
-				timeLeft := time.Until(claims.ExpiresAt.Time)
-				fmt.Printf("  Status: ✅ Valid (expires in %s)\n", utils.FormatDuration(timeLeft))
+				return nil
 			}
+			timeLeft := time.Until(claims.ExpiresAt.Time)
+			fmt.Printf("  Status: ✅ Valid (expires in %s)\n", utils.FormatDuration(timeLeft))
 		}
-		
+
 		if claims.IssuedAt != nil {
 			fmt.Printf("  Issued At: %s\n", utils.FormatDateTime(claims.IssuedAt.Time))
 		}
-		
+
 		if claims.NotBefore != nil {
 			fmt.Printf("  Not Before: %s\n", utils.FormatDateTime(claims.NotBefore.Time))
 		}
-		
+
 		if claims.Issuer != "" {
 			fmt.Printf("  Issuer: %s\n", claims.Issuer)
 		}
-		
+
 		if claims.Subject != "" {
 			fmt.Printf("  Subject: %s\n", claims.Subject)
 		}

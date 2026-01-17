@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	envAPIKey    = "PORKBUN_API_KEY"
-	envSecretKey = "PORKBUN_SECRET_KEY"
-	envDomains   = "PORKBUN_DOMAINS" // Optional: manually specify domains
+	envAPIKey    = "PORKBUN_API_KEY"    //nolint:gosec // not a credential
+	envSecretKey = "PORKBUN_SECRET_KEY" //nolint:gosec // not a credential
+	envDomains   = "PORKBUN_DOMAINS"    // Optional: manually specify domains
 )
 
 // Bootstrap implements domain.ProviderBootstrap for Porkbun
@@ -36,12 +36,12 @@ func (b *Bootstrap) GetProviderName() string {
 // RegisterFlags registers command-line flags for Porkbun provider
 func (b *Bootstrap) RegisterFlags(cmd *cobra.Command) {
 	flags := cmd.PersistentFlags()
-	
-	flags.StringVar(&b.apiKey, "porkbun-api-key", "", 
+
+	flags.StringVar(&b.apiKey, "porkbun-api-key", "",
 		"Porkbun API key (overrides PORKBUN_API_KEY env var)")
-	flags.StringVar(&b.secretKey, "porkbun-secret-key", "", 
+	flags.StringVar(&b.secretKey, "porkbun-secret-key", "",
 		"Porkbun secret key (overrides PORKBUN_SECRET_KEY env var)")
-	flags.StringVar(&b.domains, "porkbun-domains", "", 
+	flags.StringVar(&b.domains, "porkbun-domains", "",
 		"Comma-separated list of domains (optional, if not specified all domains from account will be used)")
 }
 
@@ -70,7 +70,7 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 	}
 
 	var domains []string
-	var domainInfos []domain.DomainInfo
+	var domainInfos []domain.Info
 
 	if domainsStr != "" {
 		// User specified domains manually
@@ -78,10 +78,10 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 		if len(domains) == 0 {
 			return nil, fmt.Errorf("no valid domains specified for Porkbun")
 		}
-		
+
 		// Create basic domain info for manually specified domains
 		for _, d := range domains {
-			domainInfos = append(domainInfos, domain.DomainInfo{
+			domainInfos = append(domainInfos, domain.Info{
 				Name:     d,
 				Provider: "porkbun",
 				Status:   "CONFIGURED",
@@ -90,7 +90,7 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 	} else {
 		// Auto-discover domains from Porkbun account
 		client := NewClient(apiKey, secretKey)
-		
+
 		// Test connection first
 		if _, err := client.Ping(); err != nil {
 			return nil, fmt.Errorf("failed to connect to Porkbun API: %w", err)
@@ -110,12 +110,12 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 		for _, d := range porkbunDomains {
 			if d.Status == "ACTIVE" {
 				domains = append(domains, d.Domain)
-				
+
 				// Parse dates
 				createDate := parseDate(d.CreateDate)
 				expireDate := parseDate(d.ExpireDate)
-				
-				domainInfos = append(domainInfos, domain.DomainInfo{
+
+				domainInfos = append(domainInfos, domain.Info{
 					Name:       d.Domain,
 					Provider:   "porkbun",
 					Status:     d.Status,
@@ -132,10 +132,10 @@ func (b *Bootstrap) CreateProvider() (domain.CertificateProvider, error) {
 	}
 
 	provider := NewProvider(apiKey, secretKey, domains)
-	
+
 	// Set domain info
 	provider.SetDomainInfos(domainInfos)
-	
+
 	// Validate configuration
 	if err := provider.ValidateConfiguration(); err != nil {
 		return nil, fmt.Errorf("Porkbun provider validation failed: %w", err)
@@ -172,14 +172,14 @@ func (b *Bootstrap) getDomains() string {
 func parseDomains(domainsStr string) []string {
 	parts := strings.Split(domainsStr, ",")
 	domains := make([]string, 0, len(parts))
-	
+
 	for _, part := range parts {
 		domain := strings.TrimSpace(part)
 		if domain != "" {
 			domains = append(domains, domain)
 		}
 	}
-	
+
 	return domains
 }
 
@@ -188,13 +188,13 @@ func parseDate(dateStr string) time.Time {
 	if dateStr == "" {
 		return time.Time{}
 	}
-	
+
 	// Porkbun format: "2018-08-20 17:52:51"
 	t, err := time.Parse("2006-01-02 15:04:05", dateStr)
 	if err != nil {
 		// If parsing fails, return zero time
 		return time.Time{}
 	}
-	
+
 	return t
 }

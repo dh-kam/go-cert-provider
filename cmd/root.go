@@ -29,7 +29,7 @@ using JWT tokens for authentication and authorization.`,
 			// Skip provider initialization for commands that don't need it
 			cmdPath := cmd.CommandPath()
 			skipProviderInit := false
-			
+
 			// Commands that don't need provider initialization
 			skipCommands := []string{
 				"go-cert-provider jwt",
@@ -37,18 +37,18 @@ using JWT tokens for authentication and authorization.`,
 				"go-cert-provider help",
 				"go-cert-provider completion",
 			}
-			
+
 			for _, skipCmd := range skipCommands {
 				if len(cmdPath) >= len(skipCmd) && cmdPath[:len(skipCmd)] == skipCmd {
 					skipProviderInit = true
 					break
 				}
 			}
-			
+
 			if skipProviderInit {
 				return nil
 			}
-			
+
 			// Initialize certificate provider system
 			providerRegistry, bootstrapManager, err := cert.InitializeCertificateSystem(cmd)
 			if err != nil {
@@ -87,4 +87,4 @@ func init() {
 		// These will be available to all subcommands
 		bootstrapManager.RegisterFlags(rootCmd)
 	}
-} 
+}

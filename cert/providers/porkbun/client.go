@@ -14,8 +14,8 @@ const (
 
 // Client represents a Porkbun API client
 type Client struct {
-	apiKey    string
-	secretKey string
+	apiKey     string
+	secretKey  string
 	httpClient *http.Client
 }
 
@@ -90,7 +90,10 @@ func (c *Client) makeRequest(endpoint string, result interface{}) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("API returned status %d (failed to read body: %w)", resp.StatusCode, err)
+		}
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -138,7 +141,7 @@ func (c *Client) ListDomains() ([]Domain, error) {
 func (c *Client) RetrieveSSL(domain string) (*SSLResponse, error) {
 	var result SSLResponse
 	endpoint := fmt.Sprintf("/ssl/retrieve/%s", domain)
-	
+
 	if err := c.makeRequest(endpoint, &result); err != nil {
 		return nil, err
 	}

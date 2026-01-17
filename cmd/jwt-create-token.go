@@ -49,13 +49,13 @@ var createTokenCmd = &cobra.Command{
 			jwtSecretKey = os.Getenv("JWT_SECRET_KEY")
 		}
 		if jwtSecretKey == "" {
-			return fmt.Errorf("JWT secret key is required. Use --jwt-secret-key flag or set JWT_SECRET_KEY environment variable")
+			return fmt.Errorf("JWT secret key is required; use --jwt-secret-key flag or set JWT_SECRET_KEY environment variable")
 		}
 
 		var expiresAt time.Time
 		if options.expiresAt != "" {
 			var err error
-			
+
 			// Try parsing as duration first (e.g., "2y", "3months", "5d")
 			if duration, durationErr := utils.ParseDurationString(options.expiresAt); durationErr == nil {
 				expiresAt = time.Now().Add(duration)
@@ -67,7 +67,7 @@ var createTokenCmd = &cobra.Command{
 					"2006-01-02T15:04:05",
 					"2006-01-02",
 				}
-				
+
 				for _, format := range formats {
 					switch format {
 					case utils.DateTimeFormat:
@@ -83,14 +83,14 @@ var createTokenCmd = &cobra.Command{
 						}
 					default:
 						expiresAt, err = time.ParseInLocation(format, options.expiresAt, time.Local)
-					}	
+					}
 					if err == nil {
 						break
 					}
 				}
-				
+
 				if err != nil {
-					return fmt.Errorf("invalid expires-at format. Use duration (e.g., '2y', '3months', '5d') or date/time format (YYYY-MM-DD HH:mm:ss, YYYY-MM-DD)")
+					return fmt.Errorf("invalid expires-at format; use duration (e.g., '2y', '3months', '5d') or date/time format (YYYY-MM-DD HH:mm:ss, YYYY-MM-DD)")
 				}
 			}
 		} else {
@@ -98,16 +98,16 @@ var createTokenCmd = &cobra.Command{
 		}
 
 		issuedAt := time.Now()
-		
+
 		claims := jwt.MapClaims{
-			"user_id":          options.userID,
-			"description":      options.description,
-			"allowed_domains":  allowedDomainsList,
-			"exp":              expiresAt.Unix(),
-			"iat":              issuedAt.Unix(),
-			"nbf":              issuedAt.Unix(),
-			"iss":              "go-cert-provider",
-			"sub":              options.userID,
+			"user_id":         options.userID,
+			"description":     options.description,
+			"allowed_domains": allowedDomainsList,
+			"exp":             expiresAt.Unix(),
+			"iat":             issuedAt.Unix(),
+			"nbf":             issuedAt.Unix(),
+			"iss":             "go-cert-provider",
+			"sub":             options.userID,
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -144,8 +144,12 @@ func init() {
 	flags.StringVar(&opts.expiresAt, "expires-at", "", "Token expiration time: duration (2y, 3months, 5d) or date (YYYY-MM-DD HH:mm:ss, YYYY-MM-DD) (default: 1 year)")
 	flags.StringVar(&opts.jwtSecretKey, "jwt-secret-key", "", "JWT secret key (overrides JWT_SECRET_KEY env var)")
 
-	createTokenCmd.MarkFlagRequired("user-id")
-	createTokenCmd.MarkFlagRequired("allowed-domains")
+	if err := createTokenCmd.MarkFlagRequired("user-id"); err != nil {
+		panic(err)
+	}
+	if err := createTokenCmd.MarkFlagRequired("allowed-domains"); err != nil {
+		panic(err)
+	}
 
 	ctx := context.WithValue(context.Background(), KeyForOptions, opts)
 	createTokenCmd.SetContext(ctx)

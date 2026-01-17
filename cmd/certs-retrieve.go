@@ -8,15 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type retrieveCommandOptions struct {
-	outputDir      string
-	outputFormat   string
-	separateFiles  bool
-	certFileName   string
-	keyFileName    string
-	bundleFileName string
-}
-
 // retrieveCmd represents the retrieve command
 var retrieveCmd = &cobra.Command{
 	Use:   "retrieve <domain>",
@@ -47,11 +38,26 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		domain := args[0]
 
-		outputDir, _ := cmd.Flags().GetString("output-dir")
-		separateFiles, _ := cmd.Flags().GetBool("separate-files")
-		certFileName, _ := cmd.Flags().GetString("cert-file")
-		keyFileName, _ := cmd.Flags().GetString("key-file")
-		bundleFileName, _ := cmd.Flags().GetString("bundle-file")
+		outputDir, err := cmd.Flags().GetString("output-dir")
+		if err != nil {
+			return err
+		}
+		separateFiles, err := cmd.Flags().GetBool("separate-files")
+		if err != nil {
+			return err
+		}
+		certFileName, err := cmd.Flags().GetString("cert-file")
+		if err != nil {
+			return err
+		}
+		keyFileName, err := cmd.Flags().GetString("key-file")
+		if err != nil {
+			return err
+		}
+		bundleFileName, err := cmd.Flags().GetString("bundle-file")
+		if err != nil {
+			return err
+		}
 
 		// Use global app state (initialized in PersistentPreRunE)
 		if appState == nil {
@@ -65,7 +71,7 @@ Examples:
 			return fmt.Errorf("no provider found for domain %s: %w", domain, err)
 		}
 
-		fmt.Fprintf(cmd.OutOrStderr(), "Retrieving certificate for %s from %s provider...\n", 
+		fmt.Fprintf(cmd.OutOrStderr(), "Retrieving certificate for %s from %s provider...\n",
 			domain, provider.GetProviderName())
 
 		certChain, privateKey, err := provider.RetrieveCertificate(domain)
@@ -76,7 +82,7 @@ Examples:
 		if outputDir == "" {
 			return outputToStdout(cmd, certChain, privateKey, separateFiles)
 		} else {
-			return outputToFiles(cmd, domain, outputDir, certChain, privateKey, 
+			return outputToFiles(cmd, domain, outputDir, certChain, privateKey,
 				separateFiles, certFileName, keyFileName, bundleFileName)
 		}
 	},
@@ -97,7 +103,7 @@ func outputToStdout(cmd *cobra.Command, certChain, privateKey []byte, separateFi
 
 func outputToFiles(cmd *cobra.Command, domain, outputDir string, certChain, privateKey []byte,
 	separateFiles bool, certFileName, keyFileName, bundleFileName string) error {
-	
+
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
@@ -113,7 +119,7 @@ func outputToFiles(cmd *cobra.Command, domain, outputDir string, certChain, priv
 		certPath := filepath.Join(outputDir, certFileName)
 		keyPath := filepath.Join(outputDir, keyFileName)
 
-		if err := os.WriteFile(certPath, certChain, 0644); err != nil {
+		if err := os.WriteFile(certPath, certChain, 0600); err != nil {
 			return fmt.Errorf("failed to write certificate file: %w", err)
 		}
 		fmt.Fprintf(cmd.OutOrStderr(), "Certificate saved to: %s\n", certPath)

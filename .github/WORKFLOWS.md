@@ -20,7 +20,7 @@
   - linux-arm64
   - darwin-amd64 (Intel Mac)
   - darwin-arm64 (Apple Silicon)
-  - windows-amd64
+  - windows-x86_64
   - 버전 정보 주입 (dev-{commit})
   - 빌드된 바이너리를 artifact로 저장 (7일 보관)
   

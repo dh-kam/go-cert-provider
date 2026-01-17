@@ -14,7 +14,7 @@ type Provider struct {
 	apiKey      string
 	secretKey   string
 	domains     []string
-	domainInfos map[string]*domain.DomainInfo // Map of domain name to info
+	domainInfos map[string]*domain.Info // Map of domain name to info
 	client      *Client
 }
 
@@ -24,14 +24,14 @@ func NewProvider(apiKey, secretKey string, domains []string) *Provider {
 		apiKey:      apiKey,
 		secretKey:   secretKey,
 		domains:     domains,
-		domainInfos: make(map[string]*domain.DomainInfo),
+		domainInfos: make(map[string]*domain.Info),
 		client:      NewClient(apiKey, secretKey),
 	}
 }
 
 // SetDomainInfos sets the domain information (called by bootstrap)
-func (p *Provider) SetDomainInfos(infos []domain.DomainInfo) {
-	p.domainInfos = make(map[string]*domain.DomainInfo)
+func (p *Provider) SetDomainInfos(infos []domain.Info) {
+	p.domainInfos = make(map[string]*domain.Info)
 	for i := range infos {
 		p.domainInfos[infos[i].Name] = &infos[i]
 	}
@@ -48,13 +48,13 @@ func (p *Provider) GetDomains() []string {
 }
 
 // GetDomainInfo returns detailed information about a specific domain
-func (p *Provider) GetDomainInfo(domainName string) *domain.DomainInfo {
+func (p *Provider) GetDomainInfo(domainName string) *domain.Info {
 	info, exists := p.domainInfos[domainName]
 	if !exists {
 		// Return basic info if detailed info not available
 		for _, d := range p.domains {
 			if d == domainName {
-				return &domain.DomainInfo{
+				return &domain.Info{
 					Name:     domainName,
 					Provider: p.GetProviderName(),
 					Status:   "UNKNOWN",
@@ -67,8 +67,8 @@ func (p *Provider) GetDomainInfo(domainName string) *domain.DomainInfo {
 }
 
 // ListDomainInfo returns detailed information for all managed domains
-func (p *Provider) ListDomainInfo() []domain.DomainInfo {
-	infos := make([]domain.DomainInfo, 0, len(p.domains))
+func (p *Provider) ListDomainInfo() []domain.Info {
+	infos := make([]domain.Info, 0, len(p.domains))
 	for _, domainName := range p.domains {
 		if info := p.GetDomainInfo(domainName); info != nil {
 			infos = append(infos, *info)
