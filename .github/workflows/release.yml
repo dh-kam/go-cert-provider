@@ -22,12 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.version.outputs.version }}
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
         
@@ -65,43 +64,51 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         fi
         
+    - name: Create tag
+      run: |
+        git tag "${{ steps.version.outputs.version }}"
+        git push origin "${{ steps.version.outputs.version }}"
+
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.version.outputs.version }}
-        release_name: Release ${{ steps.version.outputs.version }}
-        body: |
-          ## What's Changed
-          
-          ${{ steps.changelog.outputs.changelog }}
-          
-          ## Downloads
-          
-          Download the binary for your platform below.
-          
-          ## Installation
-          
-          ### Linux / macOS
-          ```bash
-          # Download and extract
-          tar -xzf go-cert-provider-*.tar.gz
-          
-          # Make executable
-          chmod +x go-cert-provider
-          
-          # Move to PATH
-          sudo mv go-cert-provider /usr/local/bin/
-          ```
-          
-          ### Windows
-          ```powershell
-          # Extract the zip file and add to PATH
-          ```
-        draft: false
-        prerelease: ${{ github.event.inputs.prerelease }}
+      run: |
+        prerelease_flag=""
+        if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+          prerelease_flag="--prerelease"
+        fi
+
+        gh release create "${{ steps.version.outputs.version }}" \
+          --title "Release ${{ steps.version.outputs.version }}" \
+          --notes-file - \
+          ${prerelease_flag} <<'EOF'
+        ## What's Changed
+
+        ${{ steps.changelog.outputs.changelog }}
+
+        ## Downloads
+
+        Download the binary for your platform below.
+
+        ## Installation
+
+        ### Linux / macOS
+        ```bash
+        # Download and extract
+        tar -xzf go-cert-provider-*.tar.gz
+
+        # Make executable
+        chmod +x go-cert-provider
+
+        # Move to PATH
+        sudo mv go-cert-provider /usr/local/bin/
+        ```
+
+        ### Windows
+        ```powershell
+        # Extract the zip file and add to PATH
+        ```
+        EOF
 
   build-and-upload:
     name: Build and Upload Assets
@@ -124,12 +131,12 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
         
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: go.mod
         
@@ -187,24 +194,20 @@ jobs:
         fi
         
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ env.ARCHIVE_NAME }}
-        asset_name: ${{ env.ARCHIVE_NAME }}
-        asset_content_type: application/octet-stream
+        tag_name: ${{ needs.create-release.outputs.version }}
+        files: ./${{ env.ARCHIVE_NAME }}
         
     - name: Upload Checksum
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ env.ARCHIVE_NAME }}.sha256
-        asset_name: ${{ env.ARCHIVE_NAME }}.sha256
-        asset_content_type: text/plain
+        tag_name: ${{ needs.create-release.outputs.version }}
+        files: ./${{ env.ARCHIVE_NAME }}.sha256
 
   notify:
     name: Notify Completion
