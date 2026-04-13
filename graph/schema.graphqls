@@ -7,10 +7,27 @@ type User {
   description: String!
 }
 
+type Domain {
+  name: String!
+  status: String!
+  provider: String!
+  createDate: String
+  expireDate: String
+  autoRenew: Boolean!
+}
+
+type CertificateBundle {
+  domain: String!
+  certificateChain: String!
+  privateKey: String!
+}
+
 type Query {
   health: Health!
   version: Version!
   me: User
+  domains: [Domain!]!
+  certificate(domain: String!): CertificateBundle!
 }
 
 type Health {

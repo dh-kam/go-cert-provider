@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 const (
-	apiBaseURL = "https://api.porkbun.com/api/json/v3"
+	apiBaseURL            = "https://api.porkbun.com/api/json/v3"
+	defaultRequestTimeout = 30 * time.Second
 )
 
 // Client represents a Porkbun API client
@@ -24,7 +26,7 @@ func NewClient(apiKey, secretKey string) *Client {
 	return &Client{
 		apiKey:     apiKey,
 		secretKey:  secretKey,
-		httpClient: &http.Client{},
+		httpClient: &http.Client{Timeout: defaultRequestTimeout},
 	}
 }
 

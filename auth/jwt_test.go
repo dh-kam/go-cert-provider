@@ -111,6 +111,36 @@ func TestParseJWT_InvalidToken(t *testing.T) {
 	}
 }
 
+func TestParseJWT_RequiresSecret(t *testing.T) {
+	secretKey := "test-secret-key-32-bytes-long!!"
+	token, err := CreateJWT("user", "desc", time.Now().Add(time.Hour), []string{"example.com"}, secretKey)
+	if err != nil {
+		t.Fatalf("Failed to generate JWT: %v", err)
+	}
+
+	_, err = ParseJWT(token, "")
+	if err == nil {
+		t.Fatal("Expected error when secret key is missing")
+	}
+}
+
+func TestParseJWTUnverified(t *testing.T) {
+	secretKey := "test-secret-key-32-bytes-long!!"
+	token, err := CreateJWT("user", "desc", time.Now().Add(time.Hour), []string{"example.com"}, secretKey)
+	if err != nil {
+		t.Fatalf("Failed to generate JWT: %v", err)
+	}
+
+	claims, err := ParseJWTUnverified(token)
+	if err != nil {
+		t.Fatalf("Failed to parse JWT without verification: %v", err)
+	}
+
+	if claims.UserID != "user" {
+		t.Fatalf("Expected user claim to round-trip, got %q", claims.UserID)
+	}
+}
+
 func TestParseJWT_WrongSecretKey(t *testing.T) {
 	correctKey := "correct-secret-key-32-bytes!!"
 	wrongKey := "wrong-secret-key-32-bytes-long"

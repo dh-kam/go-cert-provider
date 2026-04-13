@@ -66,8 +66,8 @@ func (sm *Manager) CreateSession(userID, description string, expireDate time.Tim
 
 // GetSession retrieves a session by ID
 func (sm *Manager) GetSession(sessionID string) (*UserSession, bool) {
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
 
 	session, exists := sm.sessions[sessionID]
 	if !exists {
@@ -75,7 +75,7 @@ func (sm *Manager) GetSession(sessionID string) (*UserSession, bool) {
 	}
 
 	if time.Now().After(session.ExpireDate) {
-		go sm.DeleteSession(sessionID)
+		delete(sm.sessions, sessionID)
 		return nil, false
 	}
 
@@ -121,11 +121,12 @@ func (sm *Manager) cleanupExpiredSessions() {
 
 // Global session manager instance
 var globalManager *Manager
+var globalManagerOnce sync.Once
 
 // GetGlobalManager returns the global session manager instance
 func GetGlobalManager() *Manager {
-	if globalManager == nil {
+	globalManagerOnce.Do(func() {
 		globalManager = NewManager()
-	}
+	})
 	return globalManager
 }

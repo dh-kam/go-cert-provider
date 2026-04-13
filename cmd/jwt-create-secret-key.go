@@ -15,7 +15,9 @@ var createSecretKeyCmd = &cobra.Command{
 	Long:  "Generate a cryptographically secure random string for JWT signing",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			_ = cmd.Usage()
+			if err := cmd.Usage(); err != nil {
+				return err
+			}
 			return fmt.Errorf("this command does not take any arguments")
 		}
 		return nil

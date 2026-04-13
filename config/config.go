@@ -36,7 +36,7 @@ func NewServerConfig() *ServerConfig {
 	// Check environment variables first
 	if portStr := os.Getenv("LISTEN_PORT"); portStr != "" {
 		if port, err := strconv.Atoi(portStr); err == nil {
-			cfg.Port = int(port)
+			cfg.Port = port
 		}
 	}
 

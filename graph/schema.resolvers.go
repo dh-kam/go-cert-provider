@@ -8,6 +8,8 @@ package graph
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"sort"
 	"time"
 
 	"github.com/dh-kam/go-cert-provider/auth"
@@ -21,7 +23,7 @@ import (
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.LoginResponse, error) {
 	// Get JWT secret key from context
-	jwtSecretKey, _ := ctx.Value("jwt_secret_key").(string)
+	jwtSecretKey, _ := ctx.Value(ContextKeyJWTSecret).(string)
 
 	// Parse JWT token
 	claims, err := auth.ParseJWT(input.APIKey, jwtSecretKey)
@@ -43,15 +45,16 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 	)
 
 	// Set cookie if we can access the gin context
-	if ginCtx, ok := ctx.Value("gin").(*gin.Context); ok {
+	if ginCtx, ok := ctx.Value(ContextKeyGin).(*gin.Context); ok {
+		ginCtx.SetSameSite(http.SameSiteLaxMode)
 		ginCtx.SetCookie(
 			"session_id", // cookie name
 			sessionID,    // cookie value
 			30*60,        // max age (30 minutes)
 			"/",          // path
 			"",           // domain (empty for current domain)
-			false,        // secure (set to true in production with HTTPS)
-			true,         // httpOnly
+			isSecureRequest(ginCtx),
+			true, // httpOnly
 		)
 	}
 
@@ -68,7 +71,7 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 // Logout is the resolver for the logout field.
 func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 	// Get session ID from cookie if available
-	if ginCtx, ok := ctx.Value("gin").(*gin.Context); ok {
+	if ginCtx, ok := ctx.Value(ContextKeyGin).(*gin.Context); ok {
 		sessionID, err := ginCtx.Cookie("session_id")
 		if err == nil && sessionID != "" {
 			// Delete session
@@ -76,13 +79,14 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 			sessionManager.DeleteSession(sessionID)
 
 			// Clear cookie
+			ginCtx.SetSameSite(http.SameSiteLaxMode)
 			ginCtx.SetCookie(
 				"session_id",
 				"",
 				-1, // max age -1 to delete cookie
 				"/",
 				"",
-				false,
+				isSecureRequest(ginCtx),
 				true,
 			)
 		}
@@ -111,7 +115,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	// Get session ID from cookie if available
-	if ginCtx, ok := ctx.Value("gin").(*gin.Context); ok {
+	if ginCtx, ok := ctx.Value(ContextKeyGin).(*gin.Context); ok {
 		sessionID, err := ginCtx.Cookie("session_id")
 		if err != nil || sessionID == "" {
 			return nil, nil // No session cookie
@@ -131,6 +135,62 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}
 
 	return nil, nil // No gin context available
+}
+
+// Domains is the resolver for the domains field.
+func (r *queryResolver) Domains(ctx context.Context) ([]*model.Domain, error) {
+	userSession, err := getSessionFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	providerRegistry, err := getRegistryFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	allDomainInfo := providerRegistry.ListAllDomainInfo()
+	result := make([]*model.Domain, 0, len(allDomainInfo))
+
+	for _, info := range allDomainInfo {
+		if isDomainAllowed(userSession.AllowedDomains, info.Name) {
+			result = append(result, toDomainModel(info))
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result, nil
+}
+
+// Certificate is the resolver for the certificate field.
+func (r *queryResolver) Certificate(ctx context.Context, domain string) (*model.CertificateBundle, error) {
+	userSession, err := getSessionFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isDomainAllowed(userSession.AllowedDomains, domain) {
+		return nil, fmt.Errorf("access denied for domain: %s", domain)
+	}
+
+	providerRegistry, err := getRegistryFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	certChain, privateKey, err := providerRegistry.RetrieveCertificate(domain)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.CertificateBundle{
+		Domain:           domain,
+		CertificateChain: string(certChain),
+		PrivateKey:       string(privateKey),
+	}, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

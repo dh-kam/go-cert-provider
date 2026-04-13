@@ -81,10 +81,10 @@ Examples:
 
 		if outputDir == "" {
 			return outputToStdout(cmd, certChain, privateKey, separateFiles)
-		} else {
-			return outputToFiles(cmd, domain, outputDir, certChain, privateKey,
-				separateFiles, certFileName, keyFileName, bundleFileName)
 		}
+
+		return outputToFiles(cmd, domain, outputDir, certChain, privateKey,
+			separateFiles, certFileName, keyFileName, bundleFileName)
 	},
 }
 

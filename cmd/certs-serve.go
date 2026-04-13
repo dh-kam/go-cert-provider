@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,7 +25,7 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start the GraphQL server",
-	Long: `Start the HTTP server with GraphQL API for certificate retrieval.
+	Long: `Start the HTTP server with GraphQL API for authentication, service metadata, and certificate retrieval.
 
 The server provides:
 - GraphQL API endpoint at /graphql
@@ -68,23 +69,8 @@ Examples:
 			jwtSecretKey = os.Getenv("JWT_SECRET_KEY")
 		}
 		if jwtSecretKey == "" {
-			return fmt.Errorf(`JWT secret key is required for server operation.
-
-The server uses JWT tokens for authentication. Without a secret key, 
-the server cannot verify JWT tokens and would be non-functional.
-
-Please provide a JWT secret key using one of these methods:
-
-  1. Environment variable:
-     export JWT_SECRET_KEY="your-secret-key"
-     
-  2. Command line flag:
-     --jwt-secret-key "your-secret-key"
-     
-  3. Generate a new secret key:
-     go-cert-provider jwt create-secret-key
-
-Then start the server with the generated key.`)
+			printJWTSecretKeyHelp(cmd.ErrOrStderr())
+			return fmt.Errorf("jwt secret key is required for server operation")
 		}
 
 		// Validate that we have at least one domain to manage
@@ -139,9 +125,9 @@ For more information, see: go-cert-provider domain list --help`)
 		// Custom middleware to add gin context, JWT secret, and provider registry to GraphQL context
 		router.POST("/graphql", func(c *gin.Context) {
 			// Add gin context, JWT secret key, and provider registry to the request context
-			ctx := context.WithValue(c.Request.Context(), KeyForGin, c)
-			ctx = context.WithValue(ctx, KeyForJwtSecret, jwtSecretKey)
-			ctx = context.WithValue(ctx, KeyForCertRegistry, providerRegistry)
+			ctx := context.WithValue(c.Request.Context(), graph.ContextKeyGin, c)
+			ctx = context.WithValue(ctx, graph.ContextKeyJWTSecret, jwtSecretKey)
+			ctx = context.WithValue(ctx, graph.ContextKeyCertRegistry, providerRegistry)
 			c.Request = c.Request.WithContext(ctx)
 
 			// Call the GraphQL handler
@@ -196,4 +182,24 @@ func init() {
 	flags.String("jwt-secret-key", "", "JWT secret key for token verification (overrides JWT_SECRET_KEY env var)")
 
 	certsCmd.AddCommand(serveCmd)
+}
+
+func printJWTSecretKeyHelp(w io.Writer) {
+	fmt.Fprintln(w, "jwt secret key is required for server operation")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "the server uses JWT tokens for authentication. without a secret key,")
+	fmt.Fprintln(w, "the server cannot verify JWT tokens and would be non-functional.")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "provide a JWT secret key using one of these methods:")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  1. Environment variable:")
+	fmt.Fprintln(w, "     export JWT_SECRET_KEY=\"your-secret-key\"")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  2. Command line flag:")
+	fmt.Fprintln(w, "     --jwt-secret-key \"your-secret-key\"")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  3. Generate a new secret key:")
+	fmt.Fprintln(w, "     go-cert-provider jwt create-secret-key")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "then start the server with the generated key.")
 }

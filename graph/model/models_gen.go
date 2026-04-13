@@ -2,6 +2,21 @@
 
 package model
 
+type CertificateBundle struct {
+	Domain           string `json:"domain"`
+	CertificateChain string `json:"certificateChain"`
+	PrivateKey       string `json:"privateKey"`
+}
+
+type Domain struct {
+	Name       string  `json:"name"`
+	Status     string  `json:"status"`
+	Provider   string  `json:"provider"`
+	CreateDate *string `json:"createDate,omitempty"`
+	ExpireDate *string `json:"expireDate,omitempty"`
+	AutoRenew  bool    `json:"autoRenew"`
+}
+
 type Health struct {
 	Status    string `json:"status"`
 	Timestamp string `json:"timestamp"`

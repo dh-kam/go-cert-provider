@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -196,42 +197,30 @@ func outputJSON(cmd *cobra.Command, domains []string, registry interface{}, show
 			}
 		}
 
-		fmt.Fprintln(cmd.OutOrStdout(), "{")
-		fmt.Fprintf(cmd.OutOrStdout(), "  \"total\": %d,\n", len(domains))
-		fmt.Fprintln(cmd.OutOrStdout(), "  \"domains\": [")
-		for i, info := range domainInfos {
-			comma := ","
-			if i == len(domainInfos)-1 {
-				comma = ""
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "    {\"domain\": \"%s\", \"provider\": \"%s\", \"status\": \"%s\"",
-				info.Domain, info.Provider, info.Status)
-			if info.CreateDate != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), ", \"createDate\": \"%s\"", info.CreateDate)
-			}
-			if info.ExpireDate != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), ", \"expireDate\": \"%s\"", info.ExpireDate)
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "}%s\n", comma)
+		payload := struct {
+			Total   int              `json:"total"`
+			Domains []domainInfoJSON `json:"domains"`
+		}{
+			Total:   len(domains),
+			Domains: domainInfos,
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "  ]")
-		fmt.Fprintln(cmd.OutOrStdout(), "}")
-	} else {
-		fmt.Fprintln(cmd.OutOrStdout(), "{")
-		fmt.Fprintf(cmd.OutOrStdout(), "  \"total\": %d,\n", len(domains))
-		fmt.Fprintln(cmd.OutOrStdout(), "  \"domains\": [")
-		for i, domain := range domains {
-			comma := ","
-			if i == len(domains)-1 {
-				comma = ""
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "    \"%s\"%s\n", domain, comma)
-		}
-		fmt.Fprintln(cmd.OutOrStdout(), "  ]")
-		fmt.Fprintln(cmd.OutOrStdout(), "}")
+
+		encoder := json.NewEncoder(cmd.OutOrStdout())
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(payload)
 	}
 
-	return nil
+	payload := struct {
+		Total   int      `json:"total"`
+		Domains []string `json:"domains"`
+	}{
+		Total:   len(domains),
+		Domains: domains,
+	}
+
+	encoder := json.NewEncoder(cmd.OutOrStdout())
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(payload)
 }
 
 func init() {

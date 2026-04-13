@@ -16,7 +16,7 @@ This service provides TLS certificates from domain providers (Porkbun) to author
 - **Secure Certificate Distribution**: Share certificates without exposing provider API credentials
 - **JWT-Based Authorization**: Control who can access which domain certificates
 - **Centralized Management**: Single point of certificate management for multiple domains
-- **GraphQL API**: Easy integration with modern applications
+- **GraphQL API**: Session-based login, domain listing, and certificate retrieval
 
 ### Use Case
 
@@ -24,7 +24,7 @@ Perfect for teams or organizations where:
 - Multiple users/services need certificates from Porkbun domains
 - You don't want to share Porkbun API keys with everyone
 - You need audit trails and access control for certificate retrieval
-- You want a GraphQL API for certificate management
+- You want a small authenticated API alongside CLI-based certificate access
 
 ## Features
 
@@ -32,7 +32,7 @@ Perfect for teams or organizations where:
 - ** Multi-Domain Support**: Manage certificates for multiple domains from a single service
 - ** Provider Abstraction**: Clean architecture supporting multiple certificate providers (currently Porkbun)
 - ** Auto-Discovery**: Automatically discover domains from provider account
-- ** GraphQL API**: Modern API for certificate retrieval and management
+- ** GraphQL API**: Login, health, version, current-user, domain listing, and certificate retrieval
 - ** Health Check**: Built-in health monitoring endpoint
 - ** Domain-Level Authorization**: JWT tokens specify which domains users can access
 
@@ -154,6 +154,8 @@ export JWT_SECRET_KEY="your-generated-secret-key"
 
 ### Retrieving Certificates
 
+Certificate retrieval is exposed through both the CLI and the authenticated GraphQL API.
+
 ```bash
 # Retrieve certificate to stdout
 ./build/current/debug/go-cert-provider certs retrieve example.com
@@ -213,6 +215,8 @@ export JWT_SECRET_KEY="your-generated-secret-key"
 
 ## GraphQL API
 
+The GraphQL schema covers authentication, service metadata, domain listing, and authenticated certificate retrieval.
+
 ### Authentication
 
 ```graphql
@@ -253,6 +257,25 @@ query Me {
   me {
     id
     description
+  }
+}
+
+# Accessible domains for the current session
+query Domains {
+  domains {
+    name
+    provider
+    status
+    expireDate
+  }
+}
+
+# Certificate material for an allowed domain
+query Certificate {
+  certificate(domain: "example.com") {
+    domain
+    certificateChain
+    privateKey
   }
 }
 ```

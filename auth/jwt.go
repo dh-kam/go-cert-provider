@@ -17,17 +17,16 @@ type JWTClaims struct {
 
 // ParseJWT parses and validates a JWT token with secret verification
 func ParseJWT(tokenString, secret string) (*JWTClaims, error) {
-	if secret != "" {
-		// Use secret verification if provided
-		return ValidateJWTWithSecret(tokenString, secret)
+	if secret == "" {
+		return nil, fmt.Errorf("jwt secret key is required")
 	}
 
-	// Parse without verification (for testing only)
-	return parseJWTWithoutVerification(tokenString)
+	return ValidateJWTWithSecret(tokenString, secret)
 }
 
-// parseJWTWithoutVerification parses JWT without signature verification (for testing)
-func parseJWTWithoutVerification(tokenString string) (*JWTClaims, error) {
+// ParseJWTUnverified parses JWT without signature verification.
+// This must only be used in tests or debugging flows.
+func ParseJWTUnverified(tokenString string) (*JWTClaims, error) {
 	// Parse the token without verification
 	// In production, you should always verify the signature
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, &JWTClaims{})
